@@ -1,30 +1,37 @@
-document.addEventListener("DOMContentLoaded", function() {
-  const fileList = document.getElementById("file-list");
+// إعدادات GitHub API
+const username = "mohamedsIman20131986-hash";
+const repo = "ZAMZAM";
 
-  fetch("https://api.github.com/repos/mohamedsIman20131986-hash/mohamedsIman20131986-hash.github.io/contents/")
-    .then(response => response.json())
-    .then(files => {
-      const pyFiles = files.filter(file => file.name.endsWith(".py"));
-      if (pyFiles.length === 0) {
-        fileList.innerHTML = "<p>⚠️ حالياً لم يتم العثور على ملفات .py</p>";
-        return;
-      }
+const container = document.getElementById("files-container");
 
-      pyFiles.forEach(file => {
-        const fileItem = document.createElement("div");
-        fileItem.classList.add("file-item");
+async function loadFiles() {
+  try {
+    const response = await fetch(`https://api.github.com/repos/${username}/${repo}/contents/`);
+    if (!response.ok) throw new Error("خطأ في الاتصال بـ GitHub API");
 
-        const fileLink = document.createElement("a");
-        fileLink.href = file.download_url;
-        fileLink.textContent = file.name;
-        fileLink.download = file.name;
+    const files = await response.json();
+    const pyFiles = files.filter(file => file.name.endsWith(".py"));
 
-        fileItem.appendChild(fileLink);
-        fileList.appendChild(fileItem);
-      });
-    })
-    .catch(err => {
-      console.error("حدث خطأ أثناء تحميل الملفات:", err);
-      fileList.innerHTML = "<p>⚠️ حدث خطأ أثناء تحميل الملفات.</p>";
+    if (pyFiles.length === 0) {
+      container.innerHTML = `<p class="loading">⚠️ حالياً لم يتم العثور على ملفات .py</p>`;
+      return;
+    }
+
+    let html = `<div class="file-list">`;
+    pyFiles.forEach(file => {
+      html += `
+        <div class="file">
+          <h3>${file.name}</h3>
+          <a class="download" href="${file.download_url}" download>⬇️ تحميل</a>
+        </div>
+      `;
     });
-});
+    html += `</div>`;
+    container.innerHTML = html;
+  } catch (error) {
+    container.innerHTML = `<p class="loading">⚠️ حدث خطأ أثناء تحميل الملفات.</p>`;
+    console.error(error);
+  }
+}
+
+loadFiles();
