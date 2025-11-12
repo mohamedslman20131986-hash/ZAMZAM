@@ -1,49 +1,41 @@
-// script.js — يعرض ملفات .py الموجودة في مجلد الموقع مباشرة
+(function(){
+  const manualFiles = [
+  "GOOD~joop.py",
+  "ahmed (3).py",
+  "Plag fasé.py",
+  "انستا11.py",
+  "اداة يضيم بعلي.py",
+  "اداه فيس زمزم1.py",
+  "الروسي زمزم.py",
+  "بيجي زمزم مدفوعه (1).py",
+  "بيجي مدفوعه ربط فيس.py",
+  "صوفي انستا (1).py",
+  "صيد حسابات كلاش اوف كلانس زمزم.py",
+  "فيس تيربو (1).py",
+  "فيس يوب ميل.py",
+  "نار😈.py",
+  "يوزرات تلي كلاش مميز.py",
+  "CAR💀Parking✨.py"
+  ];
 
-const repoOwner = "mohamedslman20131986-hash";
-const repoName = "ZAMZAM";
+  const container = document.getElementById('files-container');
 
-async function loadFiles() {
-  const container = document.getElementById("files");
-
-  try {
-    const response = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/`);
-    if (!response.ok) throw new Error("GitHub API error");
-
-    const data = await response.json();
-    const pyFiles = data.filter(file => file.name.endsWith(".py"));
-
-    if (pyFiles.length === 0) {
-      container.innerHTML = `<p style="color:yellow">⚠️ لا توجد ملفات Python حالياً</p>`;
+  function renderList(files){
+    if(!files || files.length===0){
+      container.innerHTML = '<p class="loading">⚠️ لا توجد ملفات .py حالياً</p>';
       return;
     }
-
-    container.innerHTML = pyFiles.map(file => `
-      <a href="${file.download_url}" download class="file-item">
-        🐍 ${file.name}
-      </a>
-    `).join("");
-
-  } catch (err) {
-    console.error(err);
-    container.innerHTML = `
-      <p style="color:#ff5555">
-        ⚠️ حدث خطأ أثناء تحميل الملفات. 
-        <br>إذا استمر الخطأ، أضف أسماء الملفات يدوياً في المصفوفة أدناه.
-      </p>
-    `;
-
-    // النسخ الاحتياطي اليدوي (تقدر تضيف هنا الملفات يدوياً)
-    const manualFiles = [
-      // "file1.py",
-      // "file2.py"
-    ];
-    if (manualFiles.length > 0) {
-      container.innerHTML += manualFiles.map(name => `
-        <a href="${name}" download class="file-item">🐍 ${name}</a>
-      `).join("");
-    }
+    const colors = ['accent-blue','accent-pink','accent-green','accent-gold','accent-purple'];
+    let html = '<div class="file-list">';
+    files.forEach((name,i)=>{
+      const c = colors[i % colors.length];
+      const download = `https://raw.githubusercontent.com/mohamedslman20131986-hash/ZAMZAM/main/${encodeURIComponent(name)}`;
+      html += `<div class="file ${c}"><h3>${name}</h3><div class="meta">الاسم كما في الريبو</div><a class="download" href="${download}" download>⬇️ تحميل</a></div>`;
+    });
+    html += '</div>';
+    container.innerHTML = html;
   }
-}
 
-document.addEventListener("DOMContentLoaded", loadFiles);
+  // Render manual list directly
+  document.addEventListener('DOMContentLoaded', ()=> renderList(manualFiles));
+})();
