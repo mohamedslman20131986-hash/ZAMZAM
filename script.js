@@ -1,27 +1,30 @@
-// توليد روابط التحميل تلقائياً لأي ملف .py
-document.addEventListener('DOMContentLoaded', async () => {
-  const listContainer = document.getElementById('file-list');
-  const msg = document.getElementById('msg');
+document.addEventListener("DOMContentLoaded", function() {
+  const fileList = document.getElementById("file-list");
 
-  try {
-    const res = await fetch('.');
-    const text = await res.text();
-    const files = [...text.matchAll(/href="([^"]+\.py)"/g)].map(m => m[1]);
+  fetch("https://api.github.com/repos/mohamedsIman20131986-hash/ZAMZAM/contents/")
+    .then(response => response.json())
+    .then(files => {
+      const pyFiles = files.filter(file => file.name.endsWith(".py"));
+      if (pyFiles.length === 0) {
+        fileList.innerHTML = "<p>⚠️ حالياً لم يتم العثور على ملفات .py</p>";
+        return;
+      }
 
-    if (!files.length) {
-      listContainer.innerHTML = '<p>⚠️ لم يتم العثور على ملفات .py حالياً</p>';
-      return;
-    }
+      pyFiles.forEach(file => {
+        const fileItem = document.createElement("div");
+        fileItem.classList.add("file-item");
 
-    files.forEach(file => {
-      const div = document.createElement('div');
-      div.className = 'file-item';
-      div.innerHTML = `<span>${file}</span><a href="${file}" download>تحميل</a>`;
-      listContainer.appendChild(div);
+        const fileLink = document.createElement("a");
+        fileLink.href = file.download_url;
+        fileLink.textContent = file.name;
+        fileLink.download = file.name;
+
+        fileItem.appendChild(fileLink);
+        fileList.appendChild(fileItem);
+      });
+    })
+    .catch(err => {
+      console.error("حدث خطأ أثناء تحميل الملفات:", err);
+      fileList.innerHTML = "<p>⚠️ حدث خطأ أثناء تحميل الملفات.</p>";
     });
-
-  } catch (err) {
-    console.error(err);
-    msg.textContent = 'حدث خطأ أثناء تحميل القائمة';
-  }
 });
