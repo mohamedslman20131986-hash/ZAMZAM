@@ -1,23 +1,37 @@
+// script.js (ذكي) - يحاول جلب ملفات .py تلقائياً من GitHub، مع fallback إلى files.json
 (async function(){
-  const username = "mohamedsIman20131986-hash";
-  const repo = "ZAMZAM";
+  const username = "mohamedsIman20131986-hash"; // اسم المستخدم
+  const repo = "ZAMZAM";                        // اسم المستودع
+  const branch = "main";                        // الفرع
   const container = document.getElementById('files-container');
 
   function showMessage(msg, isErr=false){
     container.innerHTML = `<p class="loading" style="color:${isErr? '#ff9b9b':'#9ff3ff'}">${msg}</p>`;
   }
 
-  // fallback manual list: if GitHub API blocked, you can add filenames here (exact names)
-  // Example: const manualFiles = ["GOOD~joop.py","ahmed (3).py"];
-  const manualFiles = []; // <--- leave empty to try automatic; or add your filenames
+  // يبني رابط تحميل raw من اسم الملف
+  function rawUrlFor(name){
+    return `https://raw.githubusercontent.com/${username}/${repo}/${branch}/${encodeURIComponent(name)}`;
+  }
 
-  async function loadFromApi(){
-    const url = `https://api.github.com/repos/${username}/${repo}/contents/`;
-    const res = await fetch(url);
-    if(!res.ok) throw new Error('API fetch failed: ' + res.status);
+  // يـحاول استخدام git/trees (recursive) — يعطي قائمة كل الملفات في الريبو (أفضل من contents)
+  async function fetchFromTree(){
+    const url = `https://api.github.com/repos/${username}/${repo}/git/trees/${branch}?recursive=1`;
+    const res = await fetch(url, { headers: { 'Accept': 'application/vnd.github.v3+json' }});
+    if(!res.ok) throw new Error('git/trees fetch failed: ' + res.status);
     const data = await res.json();
-    const py = data.filter(f => f.name.endsWith('.py'));
-    return py.map(f => ({name: f.name, download_url: f.download_url, size: f.size}));
+    // data.tree => array of { path, mode, type, sha, size, url }
+    const py = data.tree.filter(f => f.path && f.path.toLowerCase().endsWith('.py'));
+    return py.map(f => ({ name: f.path, download_url: rawUrlFor(f.path), size: f.size || 0 }));
+  }
+
+  // fallback: جلب ملف files.json (تضعه يدوياً بالمستودع root إذا احتجت)
+  async function fetchFromFilesJson(){
+    const url = `https://raw.githubusercontent.com/${username}/${repo}/${branch}/files.json`;
+    const res = await fetch(url);
+    if(!res.ok) throw new Error('files.json not found or fetch failed: ' + res.status);
+    const data = await res.json(); // متوقع مصفوفة من {name, download_url, size?}
+    return data;
   }
 
   function renderList(files){
@@ -32,26 +46,25 @@
     container.innerHTML = html;
   }
 
+  // التسلسل: نجرب git/trees أول، لو فشل نجرب files.json، لو فشل نعرض رسالة إرشادية
   try{
-    showMessage('جاري التحميل من GitHub...');
-    let files = [];
-    if(manualFiles.length>0){
-      // build download URLs for manual list
-      files = manualFiles.map(n=>({name:n, download_url:`https://raw.githubusercontent.com/${username}/${repo}/main/${encodeURIComponent(n)}`}));
-    } else {
-      files = await loadFromApi();
-    }
+    showMessage('جاري تحميل قائمة الملفات من GitHub (git/trees)...');
+    const files = await fetchFromTree();
     renderList(files);
-  }catch(err){
-    console.error(err);
-    if(manualFiles.length>0){
-      showMessage('تم تحميل القائمة يدوياً من التكوين المحلي.');
-      const files = manualFiles.map(n=>({name:n, download_url:`https://raw.githubusercontent.com/${username}/${repo}/main/${encodeURIComponent(n)}`}));
-      renderList(files);
-    } else {
-      showMessage('⚠️ حدث خطأ أثناء الوصول لـ GitHub API. أضف أسماء الملفات يدوياً داخل script.js (المتغير manualFiles).', true);
-      // show empty list hint
-      container.innerHTML += '<p style="color:#ffdca6;margin-top:14px">نصيحة: افتح ملف <code>script.js</code> وأضف أسماء ملفات .py في مصفوفة <code>manualFiles</code> إذا بقيت المشكلة.</p>';
+  }catch(errTree){
+    console.warn('git/trees failed:', errTree);
+    try{
+      showMessage('فشل git/trees. نجرب جلب files.json كاحتياط...');
+      const files2 = await fetchFromFilesJson();
+      renderList(files2);
+    }catch(errJson){
+      console.warn('files.json fetch failed:', errJson);
+      // النهائي: نعرض تعليمات واضحة للمستخدم/لك لتصليح المشكلة
+      container.innerHTML = `
+        <p class="loading" style="color:#ff9b9b">⚠️ حدث خطأ أثناء الوصول لـ GitHub API أو files.json.</p>
+        <p style="color:#ffdca6">حل سريع: افتح ملف <code>script.js</code> وأضف أسماء ملفات .py يدوياً في مصفوفة <code>manualFiles</code> أو أنشئ ملف <code>files.json</code> في الريبو.</p>
+        <p style="color:#ffdca6;margin-top:10px">لإنشاء files.json تلقائياً: شغّل السكربت البسيط المرفق (Python) على جهازك ثم ارفع files.json إلى جذر المستودع.</p>
+      `;
     }
   }
 })();
