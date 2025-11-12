@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", function() {
   const fileList = document.getElementById("file-list");
 
-  fetch("https://api.github.com/repos/mohamedsIman20131986-hash/ZAMZAM/contents/")
+  fetch("https://api.github.com/repos/mohamedsIman20131986-hash/mohamedsIman20131986-hash.github.io/contents/")
     .then(response => response.json())
     .then(files => {
       const pyFiles = files.filter(file => file.name.endsWith(".py"));
